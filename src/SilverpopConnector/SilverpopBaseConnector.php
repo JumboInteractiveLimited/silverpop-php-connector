@@ -2,7 +2,7 @@
 
 namespace SilverpopConnector;
 
-use SilverpopConnectorException;
+use SilverpopConnector\SilverpopConnectorException;
 
 /**
  * This is a basic class for connecting to the Silverpop API
