@@ -1,5 +1,5 @@
 {
-    "name": "JumboInteractiveLimited/silverpop-php-connector",
+    "name": "jumbo/silverpop-php-connector",
     "type": "library",
     "description": "A connector SDK library for applications integrating with Silverpop, including the Silverpop Universal Behavior API",
     "keywords": ["Silverpop"],
