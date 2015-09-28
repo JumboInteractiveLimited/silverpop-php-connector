@@ -25,6 +25,8 @@ class SilverpopXmlConnector extends SilverpopBaseConnector {
 	protected $password   = null;
 	protected $sessionId  = null;
 
+	protected $proxy      = null;
+
 	// Contact creation source constants
 	const CREATED_FROM_DB_IMPORT   = 0;
 	const CREATED_FROM_MANUAL      = 1;
@@ -54,27 +56,42 @@ class SilverpopXmlConnector extends SilverpopBaseConnector {
 	 * @param bool    $autoreply Automatically trigger auto-responders?
 	 * @param integer $createdFrom
 	 * @param array   $lists
+	 * @param array   $syncFields Associative array of sync fields used by no-key databases
 	 * @return int Returns the RecipientId of the new recipient
 	 * @throws SilverpopConnectorException
-	 */
-	public function addRecipient($listId, $fields, $upsert=false, $autoreply=false, $createdFrom=self::CREATED_FROM_MANUAL, $lists=array()) {
-                if (!preg_match('/^\d+$/', $listId)) {
-                        $listId = (int)$listId;
-                }
-                $createdFrom = (int)$createdFrom;
-                if (!in_array($createdFrom, array(0,1,2,3))) {
-                        throw new SilverpopConnectorException("Unrecognized contact createdFrom value: {$createdFrom}");
-                }
+	*/
+	public function addRecipient($listId, $fields, $upsert=false, $autoreply=false, $createdFrom=self::CREATED_FROM_MANUAL, $lists=array(), $syncFields=array()) {
+		if (!preg_match('/^\d+$/', $listId)) {
+			$listId = (int)$listId;
+		}
+		$createdFrom = (int)$createdFrom;
+
+		if (!in_array($createdFrom, array(0,1,2,3))) {
+			throw new SilverpopConnectorException("Unrecognized contact createdFrom value: {$createdFrom}");
+		}
+
 		$sendAutoreply = $autoreply ? 'TRUE' : 'FALSE';
-                $updateIfFound = $upsert ? 'TRUE' : 'FALSE';
- 
-                $lists = array_map("intval", $lists);
- 
-               $params = "<AddRecipient>
-        <LIST_ID>{$listId}</LIST_ID>
-        <CREATED_FROM>{$createdFrom}</CREATED_FROM>
-        <SEND_AUTOREPLY>{$sendAutoreply}</SEND_AUTOREPLY>
-        <UPDATE_IF_FOUND>{$updateIfFound}</UPDATE_IF_FOUND>\n";
+		$updateIfFound = $upsert ? 'TRUE' : 'FALSE';
+
+		$lists = array_map("intval", $lists);
+
+		$params = "<AddRecipient>\n";
+		$params .= "\t<LIST_ID>{$listId}</LIST_ID>\n";
+		$params .= "\t<CREATED_FROM>{$createdFrom}</CREATED_FROM>\n";
+
+		if (!empty($syncFields)) {
+			$params .= "\t<SYNC_FIELDS>";
+			foreach ($syncFields as $key => $value) {
+				$params .= "\t\t<SYNC_FIELD>\n";
+				$params .= "\t\t\t<NAME>{$key}</NAME>\n";
+				$params .= "\t\t\t<VALUE>{$value}</VALUE>\n";
+				$params .= "\t\t</SYNC_FIELD>\n";
+			}
+			$params .= "\t</SYNC_FIELDS>\n";
+		}
+
+		$params .= "<SEND_AUTOREPLY>{$sendAutoreply}</SEND_AUTOREPLY>\n";
+		$params .= "<UPDATE_IF_FOUND>{$updateIfFound}</UPDATE_IF_FOUND>\n";
 		if (count($lists)) {
 			$params .= "\t<CONTACT_LISTS>\n";
 			foreach($lists as $list) {
@@ -133,6 +150,11 @@ class SilverpopXmlConnector extends SilverpopBaseConnector {
 			CURLOPT_POST           => 1,
 			CURLOPT_POSTFIELDS     => http_build_query(array('xml'=>$params)),
 			);
+
+		if ($this->proxy) {
+			$curlParams[CURLOPT_PROXY] = $this->proxy;
+		}
+
 		$set = curl_setopt_array($ch, $curlParams);
 
 		$resultStr = curl_exec($ch);
@@ -432,6 +454,11 @@ class SilverpopXmlConnector extends SilverpopBaseConnector {
 			CURLOPT_POST           => 1,
 			CURLOPT_POSTFIELDS     => http_build_query(array('xml'=>$params)),
 			);
+
+		if ($this->proxy) {
+			$curlParams[CURLOPT_PROXY] = $this->proxy;
+		}
+
 		$set = curl_setopt_array($ch, $curlParams);
 
 		$resultStr = curl_exec($ch);
@@ -502,6 +529,11 @@ class SilverpopXmlConnector extends SilverpopBaseConnector {
 			$fh = fopen($output, 'w');
 			$curlParams[CURLOPT_FILE] = $fh;
 		}
+
+		if ($this->proxy) {
+			$curlParams[CURLOPT_PROXY] = $this->proxy;
+		}
+
 		curl_setopt_array($ch, $curlParams);
 
 		$result = curl_exec($ch);
@@ -516,10 +548,11 @@ class SilverpopXmlConnector extends SilverpopBaseConnector {
 	 * @param int   $recipientId The ID of the recipient to update
 	 * @param array $fields      An associative array of keys and values to update
 	 * @param array $optParams   An associative array of optional parameters
+	 * @param array $syncFields  An associative array of sync fields for no-key databases
 	 * @return SimpleXmlElement
 	 * @throws SilverpopConnectorException
 	 */
-	public function updateRecipient($listId, $recipientId, $fields, $optParams=array()) {
+	public function updateRecipient($listId, $recipientId, $fields, $optParams=array(), $syncFields=array()) {
 		if (!preg_match('/^\d+$/', $recipientId)) {
 			$recipientId = (int)$recipientId;
 		}
@@ -533,6 +566,18 @@ class SilverpopXmlConnector extends SilverpopBaseConnector {
 		foreach ($optParams as $key => $value) {
 			$params .= "\t<{$key}>{$value}</{$key}>\n";
 		}
+
+		if (!empty($syncFields)) {
+			$params .= "\t<SYNC_FIELDS>";
+			foreach ($syncFields as $key => $value) {
+				$params .= "\t\t<SYNC_FIELD>\n";
+				$params .= "\t\t\t<NAME>{$key}</NAME>\n";
+				$params .= "\t\t\t<VALUE>{$value}</VALUE>\n";
+				$params .= "\t\t</SYNC_FIELD>\n";
+			}
+			$params .= "\t</SYNC_FIELDS>\n";
+		}
+
 		foreach ($fields as $key => $value) {
 			$params .= "\t<COLUMN>\n";
 			$params .= "\t\t<NAME>{$key}</NAME>\n";
@@ -721,6 +766,59 @@ class SilverpopXmlConnector extends SilverpopBaseConnector {
 		return $result->Body->RESULT;
 	}
 
+	/**
+	 * Opt out recipient from a given list
+	 *
+	 * @param int $listId
+	 * @param string $email
+	 *
+	 * @return bool
+	 * @throws SilverpopConnectorException
+	 */
+	public function optOutRecipient($listId, $email) {
+		$params = "<OptOutRecipient>\n";
+		$params .= "\t<LIST_ID>{$listId}</LIST_ID>\n";
+		$params .= "\t<EMAIL>{$email}</EMAIL>\n";
+		$params .= "</OptOutRecipient>";
+
+		$params = new SimpleXMLElement($params);
+
+		$this->post($params);
+		return true;
+	}
+
+	/**
+	 * Add or update records in a relational table.
+	 *
+	 * @param integer $tableId
+	 * @param array   $rows
+	 * @return SimpleXmlElement
+	 * @throws SilverpopConnectorException
+	 */
+	public function insertUpdateRelationalTable($tableId, $rows = array()) {
+		if (!preg_match('/^\d+$/', $tableId)) {
+			$tableId = (int)$tableId;
+		}
+		$params = "<InsertUpdateRelationalTable>
+			<TABLE_ID>{$tableId}</TABLE_ID>
+			<ROWS>\n";
+
+		// populate row elements
+		foreach ($rows as $row) {
+			$params .= "\t<ROW>\n";
+			foreach ($row as $key => $value) {
+				$params .= "\t\t<COLUMN name=\"{$key}\"><![CDATA[{$value}]]></COLUMN>\n";
+			}
+			$params .= "\t</ROW>\n";
+		}
+		$params .= '</ROWS>
+		</InsertUpdateRelationalTable>';
+
+		$params = new SimpleXMLElement($params);
+		$result = $this->post($params);
+		return $result->Body->RESULT;
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	// PROTECTED ////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
@@ -747,7 +845,7 @@ class SilverpopXmlConnector extends SilverpopBaseConnector {
 			throw new SilverpopConnectorException("No <RESULT> element on response body: {$xml}");
 		} elseif (!isset($response->Body->RESULT->SUCCESS)) {
 			throw new SilverpopConnectorException("No <SUCCESS> element on result: {$xml}");
-		} elseif (strtolower($response->Body->RESULT->SUCCESS) != 'true') {
+		} elseif (strtolower($response->Body->RESULT->SUCCESS) != 'true' && strtolower($response->Body->RESULT->SUCCESS) != 'success') {
 			throw new SilverpopConnectorException('Request failed: '.$response->Body->Fault->FaultString);
 		}
 		return $response;
@@ -799,6 +897,11 @@ class SilverpopXmlConnector extends SilverpopBaseConnector {
 			CURLOPT_RETURNTRANSFER => 1,//true,
 			CURLOPT_HTTPHEADER     => $curlHeaders,
 			);
+
+		if ($this->proxy) {
+			$curlParams[CURLOPT_PROXY] = $this->proxy;
+		}
+
 		curl_setopt_array($ch, $curlParams);
 
 		$result = curl_exec($ch);

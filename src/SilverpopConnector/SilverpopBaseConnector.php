@@ -11,6 +11,7 @@ use SilverpopConnector\SilverpopConnectorException;
 abstract class SilverpopBaseConnector {
 	protected $baseUrl      = null;
 	protected $dateFormat   = null;
+	protected $proxy        = null;
 
 	///////////////////////////////////////////////////////////////////////////
 	// MAGIC /////////////////////////////////////////////////////////////////
@@ -91,6 +92,15 @@ abstract class SilverpopBaseConnector {
 	 */
 	public function setDateFormat($dateFormat) {
 		$this->dateFormat = $dateFormat;
+	}
+
+	/**
+	 * Set the proxy.
+	 *
+	 * @param string $proxy
+	 */
+	public function setProxy($proxy) {
+		$this->proxy = $proxy;
 	}
 
 	//////////////////////////////////////////////////////////////////////////

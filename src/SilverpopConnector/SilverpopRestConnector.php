@@ -21,6 +21,8 @@ class SilverpopRestConnector extends SilverpopBaseConnector {
 	protected $accessToken        = null;
 	protected $accessTokenExpires = null;
 
+	protected $proxy              = null;
+
 	///////////////////////////////////////////////////////////////////////////
 	// PUBLIC ////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////
@@ -60,6 +62,11 @@ class SilverpopRestConnector extends SilverpopBaseConnector {
 			CURLOPT_POST           => 1,
 			CURLOPT_POSTFIELDS     => http_build_query($params),
 			);
+
+		if ($this->proxy) {
+			$curlParams[CURLOPT_PROXY] = $this->proxy;
+		}
+
 		$set = curl_setopt_array($ch, $curlParams);
 
 		$resultStr = curl_exec($ch);
@@ -240,6 +247,11 @@ class SilverpopRestConnector extends SilverpopBaseConnector {
 				"Authorization: Bearer {$accessToken}",
 				),
 			);
+
+		if ($this->proxy) {
+			$curlParams[CURLOPT_PROXY] = $this->proxy;
+		}
+
 		curl_setopt_array($ch, $curlParams);
 
 		$result = curl_exec($ch);

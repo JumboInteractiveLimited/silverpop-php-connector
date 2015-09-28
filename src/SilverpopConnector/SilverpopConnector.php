@@ -34,6 +34,8 @@ class SilverpopConnector {
 	protected $refreshToken = null;
 	protected $accessToken  = null;
 
+	protected $proxy        = null;
+
 	///////////////////////////////////////////////////////////////////////////
 	// MAGIC /////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////
@@ -200,6 +202,17 @@ class SilverpopConnector {
 		$this->dateFormat = $dateFormat;
 		$this->restConnector->setDateFormat($dateFormat);
 		$this->xmlConnector->setDateFormat($dateFormat);
+	}
+
+	/**
+	 * Set the proxy.
+	 *
+	 * @param string $proxy
+	 */
+	public function setProxy($proxy) {
+		$this->proxy = $proxy;
+		$this->restConnector->setProxy($proxy);
+		$this->xmlConnector->setProxy($proxy);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
