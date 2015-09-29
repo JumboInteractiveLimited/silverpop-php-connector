@@ -215,6 +215,24 @@ class SilverpopConnector {
 		$this->xmlConnector->setProxy($proxy);
 	}
 
+	/**
+	 * Return the rest connector directly to access member methods
+	 *
+	 * @return SilverpopRestConnector
+	 */
+	public function getRestConnector() {
+		return $this->restConnector;
+	}
+
+	/**
+	 * Return the xml connector directly to access member methods
+	 *
+	 * @return SilverpopXmlConnector
+	 */
+	public function getXmlConnector() {
+		return $this->xmlConnector;
+	}
+
 	//////////////////////////////////////////////////////////////////////////
 	// PROTECTED ////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
